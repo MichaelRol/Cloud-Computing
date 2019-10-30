@@ -14,4 +14,4 @@ for n in range(0, 100):
     h2 = hashlib.sha256()
     h2.update(hash.encode('ascii'))
     hashsq = h2.hexdigest()
-    
+    print(256-len(str(bin(int(hashsq, 16))[2:])))
