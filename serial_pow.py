@@ -8,4 +8,10 @@ print(binaryblock)
 for n in range(0, 100):
     nonce = str(bin(n)).replace("0b", "")
     tohash = binaryblock + nonce
-    print(tohash)
+    h = hashlib.sha256()
+    h.update(tohash.encode('ascii'))
+    hash = h.hexdigest()
+    h2 = hashlib.sha256()
+    h2.update(hash.encode('ascii'))
+    hashsq = h2.hexdigest()
+    
