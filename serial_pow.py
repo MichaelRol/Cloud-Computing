@@ -1,5 +1,6 @@
 import hashlib
 import sys
+import time
 
 def find_golden_nonce(d):
     block = "COMSM0010cloud"
@@ -28,7 +29,11 @@ else:
         if difficulty > 256:
             print("Difficulty value too large.")
             raise ValueError()
-        print(find_golden_nonce(difficulty))
+        start = time.time()
+        golden_none = find_golden_nonce(difficulty)
+        end = time.time()
+        print("Golden nonce: " + golden_none)
+        print("Time taken: " + str(end - start))
     except ValueError:
         print("Please enter a integer value below 256 when running the program.")
     
