@@ -31,29 +31,34 @@ def find_golden_nonce(d, process, num_proc, event):
 if __name__ == '__main__':
     
     jobs = []
-    num_proc = 4
     event = multiprocessing.Event()
-    if len(sys.argv) > 2 or len(sys.argv) < 2:
-        print("Please run python3 serial_pow.py <difficulty level>")
+    if len(sys.argv) > 3 or len(sys.argv) < 3:
+        print("Usage: python3 serial_pow.py <difficulty level> <number of processes>")
     else:
         try:
-            difficulty = int(sys.argv[1])
+            difficulty = int(sys.argv[1])    
+            num_proc = int(sys.argv[2])
             if difficulty > 256:
                 print("Difficulty value too large.")
                 raise ValueError()
+            if difficulty <= 0:
+                print("Difficulty value must be positive integer.")
+                raise ValueError()
+            if num_proc <= 0:
+                print("Number of processes must be greater than 0.")
             for index in range(0, num_proc):
                 p = multiprocessing.Process(target=find_golden_nonce, args=(difficulty, index, num_proc, event,))
                 jobs.append(p)
                 p.start()
         except ValueError:
-            print("Please enter a integer value below 256 when running the program.")
+            print("Usage: python3 serial_pow.py <difficulty level> <number of processes>")
         
         while True:
             if event.is_set():
                 for i in jobs:
                     i.terminate()
                 sys.exit(1)
-            time.sleep(1)
+            time.sleep(3)
         
 
 

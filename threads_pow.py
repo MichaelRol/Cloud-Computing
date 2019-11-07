@@ -33,22 +33,24 @@ def find_golden_nonce(d, thread, num_threads, event):
 if __name__ == '__main__':
     
     jobs = []
-    num_threads = 4
     event = threading.Event()
-    if len(sys.argv) > 2 or len(sys.argv) < 2:
+    if len(sys.argv) > 3 or len(sys.argv) < 3:
         print("Please run python3 serial_pow.py <difficulty level>")
     else:
         try:
             difficulty = int(sys.argv[1])
+            num_threads = int(sys.argv[2])
             if difficulty > 256:
                 print("Difficulty value too large.")
                 raise ValueError()
+            if difficulty <= 0:
+                print("Difficulty must be positive integer.")
             for index in range(0, num_threads):
                 p = threading.Thread(target=find_golden_nonce, args=(difficulty, index, num_threads, event,))
                 jobs.append(p)
                 p.start()
         except ValueError:
-            print("Please enter a integer value below 256 when running the program.")
+            print("Usage: python3")
         
         
 
