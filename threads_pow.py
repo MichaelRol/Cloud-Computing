@@ -1,15 +1,17 @@
 import hashlib
 import sys
 import time
-import multiprocessing
+import threading
 
-def find_golden_nonce(d, process, num_proc, event):
+def find_golden_nonce(d, thread, num_threads, event):
     block = "COMSM0010cloud"
     block = bin(int.from_bytes(block.encode(), 'big'))
     binaryblock = block.replace("b", "")
     start = time.time()
-    n = process
+    n = thread
     while n <  4294967296:
+        if event.is_set():
+            return
         nonce = str(bin(n)).replace("0b", "")
         tohash = binaryblock + nonce
         h = hashlib.sha256()
@@ -22,17 +24,17 @@ def find_golden_nonce(d, process, num_proc, event):
         if leadingz >= d:
             end = time.time()
             if event.is_set() == False:
-                print("Process: " + str(process) + ", Nonce: " + str(nonce) + ", Time: " + str(end - start))
+                print("Thread: " + str(thread) + ", Nonce: " + str(nonce) + ", Time: " + str(end - start))
                 event.set()
             return
-        n += num_proc
+        n += num_threads
     print("No golden nonce found.")
 
 if __name__ == '__main__':
     
     jobs = []
-    num_proc = 4
-    event = multiprocessing.Event()
+    num_threads = 4
+    event = threading.Event()
     if len(sys.argv) > 2 or len(sys.argv) < 2:
         print("Please run python3 serial_pow.py <difficulty level>")
     else:
@@ -41,19 +43,13 @@ if __name__ == '__main__':
             if difficulty > 256:
                 print("Difficulty value too large.")
                 raise ValueError()
-            for index in range(0, num_proc):
-                p = multiprocessing.Process(target=find_golden_nonce, args=(difficulty, index, num_proc, event,))
+            for index in range(0, num_threads):
+                p = threading.Thread(target=find_golden_nonce, args=(difficulty, index, num_threads, event,))
                 jobs.append(p)
                 p.start()
         except ValueError:
             print("Please enter a integer value below 256 when running the program.")
         
-        while True:
-            if event.is_set():
-                for i in jobs:
-                    i.terminate()
-                sys.exit(1)
-            time.sleep(1)
         
 
 
