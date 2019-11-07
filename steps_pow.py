@@ -3,7 +3,7 @@ import sys
 import time
 import multiprocessing
 
-def find_golden_nonce(d, process, event):
+def find_golden_nonce(d, process, num_proc, event):
     block = "COMSM0010cloud"
     block = bin(int.from_bytes(block.encode(), 'big'))
     binaryblock = block.replace("b", "")
@@ -24,15 +24,17 @@ def find_golden_nonce(d, process, event):
         leadingz = 256-len(str(bin(int(hashsq, 16))[2:]))
         if leadingz >= d:
             end = time.time()
-            event.set()
-            print("Process: " + str(process) + ", Nonce: " + str(nonce) + ", Time: " + str(end - start))
+            if event.is_set() == False:
+                print("Process: " + str(process) + ", Nonce: " + str(nonce) + ", Time: " + str(end - start))
+                event.set()
             return
-        n += 4
+        n += num_proc
     print("No golden nonce found.")
 
 if __name__ == '__main__':
     
     jobs = []
+    num_proc = 4
     event = multiprocessing.Event()
     if len(sys.argv) > 2 or len(sys.argv) < 2:
         print("Please run python3 serial_pow.py <difficulty level>")
@@ -42,8 +44,8 @@ if __name__ == '__main__':
             if difficulty > 256:
                 print("Difficulty value too large.")
                 raise ValueError()
-            for index in range(0, 4):
-                p = multiprocessing.Process(target=find_golden_nonce, args=(difficulty, index, event,))
+            for index in range(0, num_proc):
+                p = multiprocessing.Process(target=find_golden_nonce, args=(difficulty, index, num_proc, event,))
                 jobs.append(p)
                 p.start()
         except ValueError:

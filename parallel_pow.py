@@ -23,8 +23,9 @@ def find_golden_nonce(d, process, event):
         leadingz = 256-len(str(bin(int(hashsq, 16))[2:]))
         if leadingz >= d:
             end = time.time()
-            event.set()
-            print("Process: " + str(process) + ", Nonce: " + str(nonce) + ", Time: " + str(end - start))
+            if event.is_set() == False:
+                print("Process: " + str(process) + ", Nonce: " + str(nonce) + ", Time: " + str(end - start))
+                event.set()
             return
     print("No golden nonce found.")
 
