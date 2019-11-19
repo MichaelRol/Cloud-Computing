@@ -34,7 +34,7 @@ if __name__ == '__main__':
     jobs = []
     event = multiprocessing.Event()
     if len(sys.argv) > 2 or len(sys.argv) < 2:
-        print("Please run python3 serial_pow.py <difficulty level>")
+        print("Please run python3 parallel_pow.py <difficulty level>")
     else:
         try:
             difficulty = int(sys.argv[1])

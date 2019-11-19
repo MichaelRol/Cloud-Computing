@@ -33,7 +33,7 @@ if __name__ == '__main__':
     jobs = []
     event = multiprocessing.Event()
     if len(sys.argv) > 3 or len(sys.argv) < 3:
-        print("Usage: python3 serial_pow.py <difficulty level> <number of processes>")
+        print("Usage: python3 steps_pow.py <difficulty level> <number of processes>")
     else:
         try:
             difficulty = int(sys.argv[1])    
@@ -51,7 +51,7 @@ if __name__ == '__main__':
                 jobs.append(p)
                 p.start()
         except ValueError:
-            print("Usage: python3 serial_pow.py <difficulty level> <number of processes>")
+            print("Usage: python3 steps_pow.py <difficulty level> <number of processes>")
         
         while True:
             if event.is_set():

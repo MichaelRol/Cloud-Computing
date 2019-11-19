@@ -35,7 +35,7 @@ if __name__ == '__main__':
     jobs = []
     event = threading.Event()
     if len(sys.argv) > 3 or len(sys.argv) < 3:
-        print("Please run python3 serial_pow.py <difficulty level>")
+        print("Usage: python3 threads_pow.py <difficulty level> <number of processes>")
     else:
         try:
             difficulty = int(sys.argv[1])
