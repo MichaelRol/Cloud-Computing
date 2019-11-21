@@ -50,5 +50,5 @@ else:
     child.sendline("exit")
 
 client.delete_key_pair(KeyName='ec2-keypair')
-# client.terminate_instances(InstanceId=[instance.])
 os.remove("ec2-keypair.pem")
+client.terminate_instances(InstanceIds=[instance.id])
