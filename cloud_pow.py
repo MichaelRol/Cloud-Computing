@@ -27,18 +27,28 @@ instances = ec2.create_instances(
  )
 
 print(str(instances))
+instance = instances[0]
 
+# Wait for the instance to enter the running state
+instance.wait_until_running()
+
+# Reload the instance attributes
+instance.load()
+dns = instance.public_dns_name
+print(dns)
 if len(sys.argv) > 2 or len(sys.argv) < 2:
     print("Yah dun it wrong")
 else:
     difficulty = int(sys.argv[1])
     child = pxssh.pxssh(timeout=1000, options={"StrictHostKeyChecking": "no"})
-    child.login("ec2-3-10-242-69.eu-west-2.compute.amazonaws.com", username="ubuntu", ssh_key="~/.ssh/ec2-keypair.pem")
+    child.login(dns, username="ubuntu", ssh_key="ec2-keypair.pem", auto_prompt_reset=False)
     command = "python3 steps_pow.py " + str(difficulty) + " 10"
-    child.sendline(command)
-    child.readline()
+    # child.sendline(command)
+    child.sendline("echo poo")
+    print(child.readline())
     print(child.readline())
     child.sendline("exit")
 
-response = client.delete_key_pair(KeyName='ec2-keypair')
+client.delete_key_pair(KeyName='ec2-keypair')
+# client.terminate_instances(InstanceId=[instance.])
 os.remove("ec2-keypair.pem")
