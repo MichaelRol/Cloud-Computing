@@ -4,27 +4,31 @@ import boto3
 import time
 import paramiko
 import pexpect
+import uuid
 
 ec2 = boto3.resource('ec2')
 client = boto3.client('ec2')
+keyrand = str(uuid.uuid4())
+key = 'ec2-keypair' + keyrand
+keypem = key + ".pem"
 
 # create a local file to store keypair
-outfile = open('ec2-keypair.pem','w')
+outfile = open(keypem,'w')
 
 # use boto ec2 to create new keypair
-key_pair = client.create_key_pair(KeyName='ec2-keypair')
+key_pair = client.create_key_pair(KeyName=key)
 # store keypair in a file
 key_pair_to_write = str(key_pair['KeyMaterial'])
 
 outfile.write(key_pair_to_write)
-pexpect.run("chmod 400 ec2-keypair.pem")
+pexpect.run("chmod 400 "+ keypem)
 outfile.close()
 instances = ec2.create_instances(
      ImageId='ami-0be057a22c63962cb',
      MinCount=1,
      MaxCount=1,
      InstanceType='t2.micro',
-     KeyName='ec2-keypair', 
+     KeyName=key, 
      SecurityGroupIds=[
         'sg-0823d8a9cbaa125a1',
     ],
@@ -44,16 +48,9 @@ try:
         print("Yah dun it wrong")
     else:
         difficulty = int(sys.argv[1])
-        connection = False
-        while connection == False:
-          try:
-              ssh_client=paramiko.SSHClient()
-              ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-              ssh_client.connect(dns, username="ubuntu", key_filename=os.path.expanduser('ec2-keypair.pem'))
-              connection = True
-          except paramiko.ssh_exception.PasswordRequiredException:
-              time.sleep(5)
-              print("Retrying")
+        ssh_client=paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_client.connect(dns, username="ubuntu", key_filename=os.path.expanduser(keypem))
         ftp_client=ssh_client.open_sftp()
         ftp_client.put('steps_pow.py','/home/ubuntu/steps_pow.py')
         ftp_client.close()
@@ -61,6 +58,6 @@ try:
         stdin,stdout,stderr=ssh_client.exec_command(command)
         print(stdout.readlines())
 finally:
-    client.delete_key_pair(KeyName='ec2-keypair')
-    os.remove("ec2-keypair.pem")
+    client.delete_key_pair(KeyName=key)
+    os.remove(keypem)
     client.terminate_instances(InstanceIds=[instance.id])
