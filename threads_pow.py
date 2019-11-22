@@ -50,7 +50,7 @@ if __name__ == '__main__':
                 jobs.append(p)
                 p.start()
         except ValueError:
-            print("Usage: python3")
+            print("Usage: python3 threads_pow.py <difficulty level> <number of processes>")
         
         
 

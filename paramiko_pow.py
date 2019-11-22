@@ -4,7 +4,6 @@ import boto3
 import time
 import paramiko
 import pexpect
-from pexpect import pxssh
 
 ec2 = boto3.resource('ec2')
 client = boto3.client('ec2')
@@ -39,28 +38,28 @@ instance.wait_until_running()
 # Reload the instance attributes
 instance.load()
 dns = instance.public_dns_name
-time.sleep(60)
+time.sleep(30)
 try:
     if len(sys.argv) > 2 or len(sys.argv) < 2:
         print("Yah dun it wrong")
     else:
         difficulty = int(sys.argv[1])
-        scp = "scp -o StrictHostKeyChecking=no -q -i ec2-keypair.pem steps_pow.py ubuntu@" + dns + ":~/" 
-        os.system(scp)
         connection = False
-        while connection == False:       
-            try:
-                child = pxssh.pxssh(timeout=1000, options={"StrictHostKeyChecking": "no"})
-                child.login(dns, username="ubuntu", ssh_key="ec2-keypair.pem", auto_prompt_reset=False, port=22)
-                connection = True
-            except pexpect.pxssh.ExceptionPxssh:
-                time.sleep(5)
-                print("Reattempting connection")
+        while connection == False:
+          try:
+              ssh_client=paramiko.SSHClient()
+              ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+              ssh_client.connect(dns, username="ubuntu", key_filename=os.path.expanduser('ec2-keypair.pem'))
+              connection = True
+          except paramiko.ssh_exception.PasswordRequiredException:
+              time.sleep(5)
+              print("Retrying")
+        ftp_client=ssh_client.open_sftp()
+        ftp_client.put('steps_pow.py','/home/ubuntu/steps_pow.py')
+        ftp_client.close()
         command = "python3 steps_pow.py " + str(difficulty) + " 10"
-        child.sendline(command)
-        child.readline()
-        print(child.readline())
-        child.logout()
+        stdin,stdout,stderr=ssh_client.exec_command(command)
+        print(stdout.readlines())
 finally:
     client.delete_key_pair(KeyName='ec2-keypair')
     os.remove("ec2-keypair.pem")
