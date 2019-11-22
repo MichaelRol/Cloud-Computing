@@ -46,7 +46,10 @@ try:
         difficulty = int(sys.argv[1])
         ssh_client=paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_client.connect(dns, username="ubuntu", key_filename=os.path.expanduser('ec2-keypair.pem'))
+        try:
+            ssh_client.connect(dns, username="ubuntu", key_filename=os.path.expanduser('ec2-keypair.pem'))
+        except paramiko.ssh_exception.PasswordRequiredException:
+            ssh_client.connect(dns, username="ubuntu", key_filename=os.path.expanduser('ec2-keypair.pem'))
         ftp_client=ssh_client.open_sftp()
         ftp_client.put('steps_pow.py','/home/ubuntu/steps_pow.py')
         ftp_client.close()
