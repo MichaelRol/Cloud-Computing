@@ -4,6 +4,7 @@ import sys
 import os
 import boto3
 import time
+import paramiko
 
 ec2 = boto3.resource('ec2')
 client = boto3.client('ec2')
@@ -13,9 +14,9 @@ outfile = open('ec2-keypair.pem','w')
 
 # use boto ec2 to create new keypair
 key_pair = ec2.create_key_pair(KeyName='ec2-keypair')
-
 # store keypair in a file
 key_pair_to_write = str(key_pair.key_material)
+
 outfile.write(key_pair_to_write)
 pexpect.run("chmod 400 ec2-keypair.pem")
 outfile.close()
@@ -24,7 +25,7 @@ instances = ec2.create_instances(
      MinCount=1,
      MaxCount=1,
      InstanceType='t2.micro',
-     KeyName='ec2-keypair',
+     KeyName='ec2-keypair', 
      SecurityGroupIds=[
         'sg-0cfc311b8f3cb9bbc',
     ],
@@ -49,14 +50,13 @@ try:
         print("Yah dun it wrong")
     else:
         difficulty = int(sys.argv[1])
-        child = pxssh.pxssh(timeout=1000, options={"StrictHostKeyChecking": "no"})
-        child.login(dns, username="ubuntu", ssh_key="ec2-keypair.pem", auto_prompt_reset=False, port=22)
+        ssh_client=paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_client.connect(dns, username="ubuntu", key_filename=os.path.expanduser('ec2-keypair.pem'))
         command = "python3 steps_pow.py " + str(difficulty) + " 10"
-        child.sendline(command)
-        print(child.readline())
-        print(child.readline())
-        print(child.readline())
-        child.sendline("exit")
+        stdin,stdout,stderr=ssh_client.exec_command("touch FUCKTHIS")
+        stdin,stdout,stderr=ssh_client.exec_command("ls")
+        print(stdout.readlines())
 finally:
     client.delete_key_pair(KeyName='ec2-keypair')
     os.remove("ec2-keypair.pem")
