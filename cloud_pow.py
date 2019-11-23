@@ -8,6 +8,15 @@ import random
 import uuid
 from pexpect import pxssh
 
+difficulty = 0
+
+if len(sys.argv) > 2 or len(sys.argv) < 2:
+    print("Yah dun it wrong")
+else:
+    difficulty = int(sys.argv[1])
+
+start = time.time()
+
 ec2 = boto3.resource('ec2')
 client = boto3.client('ec2')
 keyrand = str(uuid.uuid4())
@@ -43,22 +52,25 @@ instance.wait_until_running()
 # Reload the instance attributes
 instance.load()
 dns = instance.public_dns_name
-time.sleep(30)
 try:
-    if len(sys.argv) > 2 or len(sys.argv) < 2:
-        print("Yah dun it wrong")
-    else:
-        difficulty = int(sys.argv[1])
-        scp = "scp -o StrictHostKeyChecking=no -q -i "+keypem+" steps_pow.py ubuntu@" + dns + ":~/" 
-        os.system(scp)
-        child = pxssh.pxssh(timeout=1000, options={"StrictHostKeyChecking": "no"})
-        child.login(dns, username="ubuntu", ssh_key=keypem, auto_prompt_reset=False, port=22)
-        command = "python3 steps_pow.py " + str(difficulty) + " 10"
-        child.sendline(command)
-        child.readline()
-        print(child.readline())
-        child.logout()
+    connection = False
+    while connection == False:
+        try:
+            child = pxssh.pxssh(timeout=1000, options={"StrictHostKeyChecking": "no"})
+            child.login(dns, username="ubuntu", ssh_key=keypem, auto_prompt_reset=False, port=22)
+            connection = True
+        except:
+            time.sleep(5)
+    scp = "scp -o StrictHostKeyChecking=no -q -i " + keypem + " steps_pow.py ubuntu@" + dns + ":~/" 
+    os.system(scp)
+    command = "python3 steps_pow.py " + str(difficulty) + " 10"
+    child.sendline(command)
+    child.readline()
+    print(child.readline())
+    child.logout()
 finally:
+    end = time.time()
+    print("Total time: " + str(end-start))
     client.delete_key_pair(KeyName=key)
     os.remove(keypem)
     client.terminate_instances(InstanceIds=[instance.id])

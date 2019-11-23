@@ -6,6 +6,11 @@ import paramiko
 import pexpect
 import uuid
 
+if len(sys.argv) > 2 or len(sys.argv) < 2:
+    print("Yah dun it wrong")
+else:
+    difficulty = int(sys.argv[1])
+
 start = time.time()
 
 ec2 = boto3.resource('ec2')
@@ -44,27 +49,22 @@ instance.wait_until_running()
 # Reload the instance attributes
 instance.load()
 dns = instance.public_dns_name
-# time.sleep(30)
 try:
-    if len(sys.argv) > 2 or len(sys.argv) < 2:
-        print("Yah dun it wrong")
-    else:
-        difficulty = int(sys.argv[1])
-        connection = False
-        while connection == False:
-            try:
-                ssh_client=paramiko.SSHClient()
-                ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                ssh_client.connect(dns, username="ubuntu", key_filename=os.path.expanduser(keypem))
-                connection = True
-            except:
-                time.sleep(5)
-        ftp_client=ssh_client.open_sftp()
-        ftp_client.put('steps_pow.py','/home/ubuntu/steps_pow.py')
-        ftp_client.close()
-        command = "python3 steps_pow.py " + str(difficulty) + " 10"
-        stdin,stdout,stderr=ssh_client.exec_command(command)
-        print(stdout.readlines())
+    connection = False
+    while connection == False:
+        try:
+            ssh_client=paramiko.SSHClient()
+            ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh_client.connect(dns, username="ubuntu", key_filename=os.path.expanduser(keypem))
+            connection = True
+        except:
+            time.sleep(5)
+    ftp_client=ssh_client.open_sftp()
+    ftp_client.put('steps_pow.py','/home/ubuntu/steps_pow.py')
+    ftp_client.close()
+    command = "python3 steps_pow.py " + str(difficulty) + " 10"
+    stdin,stdout,stderr=ssh_client.exec_command(command)
+    print(stdout.readlines())
 finally:
     end = time.time()
     print("Total time: " + str(end-start))
