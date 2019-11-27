@@ -62,7 +62,7 @@ try:
     ftp_client=ssh_client.open_sftp()
     ftp_client.put('steps_pow.py','/home/ubuntu/steps_pow.py')
     ftp_client.close()
-    command = "python3 steps_pow.py " + str(difficulty) + " 10"
+    command = "python3 steps_pow.py " + str(difficulty) + " 10 0 4294967296"
     stdin,stdout,stderr=ssh_client.exec_command(command)
     print(stdout.readlines())
 finally:
