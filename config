@@ -16,13 +16,14 @@ compute_instance_type = optimal
 min_vcpus = 2
 desired_vcpus = 2
 max_vcpus = 24
+s3_read_resource = arn:aws:s3:::cloudcomputing-pow*
 vpc_settings = default
 
 [vpc default]
+vpc_id = vpc-0f7bce34824e7d591
+master_subnet_id = subnet-0afa41aa200c52d75
+compute_subnet_id = subnet-08e4f21546205485b
 use_public_ips = false
-vpc_id = vpc-0088598b121a2d08f
-compute_subnet_id = subnet-00483c5f310b56c6e
-master_subnet_id = subnet-04036d4bab7a1de7c
 
 [cluster default]
 key_name = CloudCOmp

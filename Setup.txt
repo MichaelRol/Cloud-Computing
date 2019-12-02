@@ -1,0 +1,12 @@
+Have cloud_pow.py create N ec2 instances
+Have them run bash file that:
+    - gets parallel_pow.py from S3
+    - runs it with values determined by num of ec2s/its alpha position
+Once steps_pow returns, put values on SQS queue
+Which is picked up by cloud_pow.py and printed, then shutsdown everything
+
+TODO:
+
+Have s3 created programmatically 
+Get tags from inside ec2 instance and apply to code
+Create SQS shiz
