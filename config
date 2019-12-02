@@ -1,0 +1,35 @@
+[aws]
+aws_region_name = eu-west-2
+
+[global]
+update_check = true
+sanity_check = true
+cluster_template = default
+
+[aliases]
+ssh = ssh {CFN_USER}@{MASTER_IP} {ARGS}
+
+[cluster awsbatch]
+key_name = CloudCOmp
+scheduler = awsbatch
+compute_instance_type = optimal
+min_vcpus = 2
+desired_vcpus = 2
+max_vcpus = 24
+vpc_settings = default
+
+[vpc default]
+use_public_ips = false
+vpc_id = vpc-0088598b121a2d08f
+compute_subnet_id = subnet-00483c5f310b56c6e
+master_subnet_id = subnet-04036d4bab7a1de7c
+
+[cluster default]
+key_name = CloudCOmp
+scheduler = awsbatch
+compute_instance_type = t2.micro
+min_vcpus = 2
+desired_vcpus = 2
+max_vcpus = 24
+vpc_settings = default
+
