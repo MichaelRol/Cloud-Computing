@@ -41,6 +41,11 @@ key_pair_to_write = str(key_pair['KeyMaterial'])
 outfile.write(key_pair_to_write)
 pexpect.run("chmod 400 " + keypem)
 outfile.close()
+
+sqs = boto3.resource('sqs')
+queue = sqs.create_queue(QueueName='CloudComputingSQS'+ keyrand)
+queue_url = queue.url
+
 instances = ec2.create_instances(
      ImageId='ami-05f37c3995fffb4fd',
      MinCount=num_of_ec2,
@@ -57,8 +62,8 @@ instances = ec2.create_instances(
                 aws s3 cp s3://cloudcomputing-pow/parallel_pow.py .
                 pip3 install boto3
                 pip3 install pexpect
-                python3 parallel_pow.py 18 2
-                ''',
+                python3 parallel_pow.py ''' + str(difficulty) + " 4 " + queue_url
+                ,
     IamInstanceProfile={'Name': 's3_sqs_access_from_ec2'},
     TagSpecifications=[
         {
@@ -67,6 +72,10 @@ instances = ec2.create_instances(
                 {
                     'Key': 'total',
                     'Value': str(num_of_ec2)
+                },
+                {
+                    'Key': 'num',
+                    'Value': str(-1)
                 },
             ]
         },
@@ -83,28 +92,20 @@ for x in range(0, num_of_ec2):
                                 'Value': str(x)},])
     
 print("Dude, relax, no ones died yet")
-# # Reload the instance attributes
-# instance.load()
-# dns = instance.public_dns_name
-# try:
-#     connection = False
-#     while connection == False:
-#         try:
-#             child = pxssh.pxssh(timeout=1000, options={"StrictHostKeyChecking": "no"})
-#             child.login(dns, username="ubuntu", ssh_key=keypem, auto_prompt_reset=False, port=22)
-#             connection = True
-#         except:
-#             time.sleep(5)
-#     scp = "scp -o StrictHostKeyChecking=no -q -i " + keypem + " steps_pow.py ubuntu@" + dns + ":~/" 
-#     os.system(scp)
-#     command = "python3 steps_pow.py " + str(difficulty) + " 10"
-#     child.sendline(command)
-#     child.readline()
-#     print(child.readline())
-#     child.logout()
-# finally:
-#     end = time.time()
-#     print("Total time: " + str(end-start))
-#     client.delete_key_pair(KeyName=key)
-#     os.remove(keypem)
-#     client.terminate_instances(InstanceIds=[instance.id])
+
+# Get the queue
+queue = sqs.get_queue_by_name(QueueName='CloudComputingSQS'+ keyrand)
+
+
+messages = []
+while messages == []:
+    messages = queue.receive_messages(QueueUrl=queue_url, WaitTimeSeconds=20)
+
+print("Nonce: " + messages[0].body + " Time taken: " + str(time.time() - start))
+client.delete_key_pair(KeyName=key)
+os.remove(keypem)
+ids = []
+for instance in instances:
+    ids.append(instance.id)
+client.terminate_instances(InstanceIds=ids)
+queue.delete()

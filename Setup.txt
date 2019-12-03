@@ -8,6 +8,6 @@ Which is picked up by cloud_pow.py and printed, then shutsdown everything
 TODO:
 
 Have s3 created programmatically 
-Get tags from inside ec2 instance and apply to code
 Create own AMI
-Create SQS shiz
+Create IAMs programmatically
+Wait until running should be parallelised

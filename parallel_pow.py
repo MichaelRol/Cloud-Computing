@@ -5,10 +5,10 @@ import multiprocessing
 import boto3
 import pexpect
 
-rank = 0
+rank = -1
 size = 1
 
-def find_golden_nonce(d, process, num_proc, event, start_val, end_val):
+def find_golden_nonce(d, process, num_proc, event, start_val, end_val, sqs_url):
     block = "COMSM0010cloud"
     block = bin(int.from_bytes(block.encode(), 'big'))
     binaryblock = block.replace("b", "")
@@ -27,6 +27,7 @@ def find_golden_nonce(d, process, num_proc, event, start_val, end_val):
         if leadingz >= d:
             end = time.time()
             if event.is_set() == False:
+                sqs.send_message(QueueUrl=sqs_url, MessageBody=str(nonce))
                 print("Rank: " + str(rank) + ", Nonce: " + str(nonce) + ", Time: " + str(end - start))
                 event.set()
             return
@@ -46,21 +47,25 @@ if __name__ == '__main__':
     instance_id = instance_id.replace("'", "")
     instance_id = instance_id.replace("\\r\\n", "")
 
+    sqs = boto3.client('sqs', region_name='eu-west-2')
+
     ec2 = boto3.resource('ec2', region_name='eu-west-2')
     instance = ec2.Instance(instance_id)
-    for tag in instance.tags:
-        if tag["Key"] == 'total':
-            size = int(tag["Value"])
-        if tag["Key"] == 'num':
-            rank = int(tag["Value"])
+    while(rank == -1):
+        for tag in instance.tags:
+            if tag["Key"] == 'total':
+                size = int(tag["Value"])
+            if tag["Key"] == 'num':
+                rank = int(tag["Value"])
 
     event = multiprocessing.Event()
-    if len(sys.argv) > 3 or len(sys.argv) < 3:
-        print("Usage: python3 steps_pow.py <difficulty level> <number of processes>.")
+    if len(sys.argv) > 4 or len(sys.argv) < 4:
+        print("Usage: python3 steps_pow.py <difficulty level> <number of processes> <SQS URL>.")
     else:
         try:
             difficulty = int(sys.argv[1])    
             num_proc = int(sys.argv[2])
+            sqs_url = sys.argv[3]
             if difficulty > 256:
                 print("Difficulty value too large.")
                 raise ValueError()
@@ -74,7 +79,7 @@ if __name__ == '__main__':
             start_val = rank * step
             end_val = start_val + step
             for index in range(0, num_proc):
-                p = multiprocessing.Process(target=find_golden_nonce, args=(difficulty, index, num_proc, event, start_val, end_val))
+                p = multiprocessing.Process(target=find_golden_nonce, args=(difficulty, index, num_proc, event, start_val, end_val, sqs_url,))
                 jobs.append(p)
                 p.start()
         except ValueError:
