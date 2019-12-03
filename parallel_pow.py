@@ -3,6 +3,7 @@ import sys
 import time
 import multiprocessing
 import boto3
+import pexpect
 
 rank = 0
 size = 1
@@ -35,6 +36,26 @@ def find_golden_nonce(d, process, num_proc, event, start_val, end_val):
 if __name__ == '__main__':
     
     jobs = []
+                
+    child = pexpect.spawn("/bin/bash")
+    child.sendline("ec2-metadata -i")
+    child.readline()
+    child.expect("instance-id:")
+    instance_id = str(child.readline()).split()[1]
+    instance_id = instance_id.replace("b'", "")
+    instance_id = instance_id.replace("'", "")
+    instance_id = instance_id.replace("\\r\\n", "")
+    print(instance_id)
+
+    ec2 = boto3.resource('ec2', region_name='eu-west-2')
+    instance = ec2.Instance(instance_id)
+    for tag in instance.tags:
+        if tag["Key"] == 'total':
+            size = int(tag["Value"])
+        if tag["Key"] == 'num':
+            rank = int(tag["Value"])
+
+    print("size: " + str(size) + " Rank: " + str(rank))
     event = multiprocessing.Event()
     if len(sys.argv) > 3 or len(sys.argv) < 3:
         print("Usage: python3 steps_pow.py <difficulty level> <number of processes>.")
@@ -50,7 +71,7 @@ if __name__ == '__main__':
                 raise ValueError()
             if num_proc <= 0:
                 print("Number of processes must be greater than 0.")
-            
+
             step = int(4294967296/size)
             start_val = rank * step
             end_val = start_val + step

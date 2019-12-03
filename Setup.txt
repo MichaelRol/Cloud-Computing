@@ -9,4 +9,5 @@ TODO:
 
 Have s3 created programmatically 
 Get tags from inside ec2 instance and apply to code
+Create own AMI
 Create SQS shiz

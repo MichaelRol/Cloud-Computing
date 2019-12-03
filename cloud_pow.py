@@ -2,7 +2,6 @@ import sys
 import os
 import boto3
 import time
-import paramiko
 import pexpect
 import random
 import uuid
@@ -21,8 +20,15 @@ start = time.time()
 
 ec2 = boto3.resource('ec2')
 client = boto3.client('ec2')
+
+s3 = boto3.client('s3')
+try:
+    response = s3.upload_file('parallel_pow.py', 'cloudcomputing-pow', 'parallel_pow.py')
+except:
+    print("Failed to upload to S3")
+
 keyrand = str(uuid.uuid4())
-key = 'ec2-keypair'# + keyrand
+key = 'ec2-keypair' + keyrand
 keypem = key + ".pem"
 
 # create a local file to store keypair
@@ -44,7 +50,15 @@ instances = ec2.create_instances(
      SecurityGroupIds=[
         'sg-0823d8a9cbaa125a1',
     ],
-    UserData=open('run.sh', 'r').read(),
+    UserData='''#!/bin/bash
+                yum install -y python3-pip python3 python3-setuptools
+                yum update
+                cd ~
+                aws s3 cp s3://cloudcomputing-pow/parallel_pow.py .
+                pip3 install boto3
+                pip3 install pexpect
+                python3 parallel_pow.py 18 2
+                ''',
     IamInstanceProfile={'Name': 's3_sqs_access_from_ec2'},
     TagSpecifications=[
         {
