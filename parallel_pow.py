@@ -45,7 +45,6 @@ if __name__ == '__main__':
     instance_id = instance_id.replace("b'", "")
     instance_id = instance_id.replace("'", "")
     instance_id = instance_id.replace("\\r\\n", "")
-    print(instance_id)
 
     ec2 = boto3.resource('ec2', region_name='eu-west-2')
     instance = ec2.Instance(instance_id)
@@ -55,7 +54,6 @@ if __name__ == '__main__':
         if tag["Key"] == 'num':
             rank = int(tag["Value"])
 
-    print("size: " + str(size) + " Rank: " + str(rank))
     event = multiprocessing.Event()
     if len(sys.argv) > 3 or len(sys.argv) < 3:
         print("Usage: python3 steps_pow.py <difficulty level> <number of processes>.")
