@@ -13,6 +13,7 @@ def find_golden_nonce(d, process, num_proc, event, start_val, end_val, sqs_url):
     block = bin(int.from_bytes(block.encode(), 'big'))
     binaryblock = block.replace("b", "")
     start = time.time()
+    print("Starting Computation")
     n = start_val + process 
     while n <  end_val:
         nonce = str(bin(n)).replace("0b", "")
@@ -27,7 +28,7 @@ def find_golden_nonce(d, process, num_proc, event, start_val, end_val, sqs_url):
         if leadingz >= d:
             end = time.time()
             if event.is_set() == False:
-                sqs.send_message(QueueUrl=sqs_url, MessageBody=str(nonce))
+                sqs.send_message(QueueUrl=sqs_url, MessageBody=str(nonce)+" Calc Time: "+str(end-start))
                 print("Rank: " + str(rank) + ", Nonce: " + str(nonce) + ", Time: " + str(end - start))
                 event.set()
             return

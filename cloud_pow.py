@@ -31,12 +31,6 @@ if __name__ == '__main__':
     ec2 = boto3.resource('ec2')
     client = boto3.client('ec2')
 
-    s3 = boto3.client('s3')
-    try:
-        response = s3.upload_file('parallel_pow.py', 'cloudcomputing-pow', 'parallel_pow.py')
-    except:
-        print("Failed to upload to S3")
-
     keyrand = str(uuid.uuid4())
     key = 'ec2-keypair' + keyrand
     keypem = key + ".pem"
@@ -53,70 +47,83 @@ if __name__ == '__main__':
     outfile.close()
 
     sqs = boto3.resource('sqs')
-    queue = sqs.create_queue(QueueName='CloudComputingSQS'+ keyrand)
-    queue_url = queue.url
 
-    instances = ec2.create_instances(
-        ImageId='ami-05f37c3995fffb4fd',
-        MinCount=num_of_ec2,
-        MaxCount=num_of_ec2,
-        InstanceType='t2.micro',
-        KeyName=key, 
-        SecurityGroupIds=[
-            'sg-0823d8a9cbaa125a1',
-        ],
-        UserData='''#!/bin/bash
-                    yum install -y python3-pip python3 python3-setuptools
-                    yum update
-                    cd ~
-                    aws s3 cp s3://cloudcomputing-pow/parallel_pow.py .
-                    pip3 install boto3
-                    pip3 install pexpect
-                    python3 parallel_pow.py ''' + str(difficulty) + " 4 " + queue_url
-                    ,
-        IamInstanceProfile={'Name': 's3_sqs_access_from_ec2'},
-        TagSpecifications=[
-            {
-                'ResourceType': 'instance',
-                'Tags': [
+    sqs_client = boto3.client('sqs')
+    try:
+        queue_url = sqs_client.get_queue_url(
+                QueueName='CloudComputingSQS'
+            )
+    except:
+        print("Failed to get SQS queue: have you ran setup_pow.py?")
+
+    instances=[]
+    while instances == []:
+        try:
+            instances = ec2.create_instances(
+                ImageId='ami-05f37c3995fffb4fd',
+                MinCount=num_of_ec2,
+                MaxCount=num_of_ec2,
+                InstanceType='t2.micro',
+                KeyName=key, 
+                SecurityGroupIds=[
+                    'sg-0823d8a9cbaa125a1',
+                ],
+                UserData='''#!/bin/bash
+                            yum install -y python3-pip python3 python3-setuptools
+                            yum update
+                            cd ~
+                            aws s3 cp s3://cloudcomputing-pow/parallel_pow.py .
+                            pip3 install boto3
+                            pip3 install pexpect
+                            python3 parallel_pow.py ''' + str(difficulty) + " 4 " + queue_url['QueueUrl']
+                            ,
+                IamInstanceProfile={'Name': 'ec2_iam_role'},
+                TagSpecifications=[
                     {
-                        'Key': 'total',
-                        'Value': str(num_of_ec2)
+                        'ResourceType': 'instance',
+                        'Tags': [
+                            {
+                                'Key': 'total',
+                                'Value': str(num_of_ec2)
+                            },
+                            {
+                                'Key': 'num',
+                                'Value': str(-1)
+                            },
+                        ]
                     },
-                    {
-                        'Key': 'num',
-                        'Value': str(-1)
-                    },
-                ]
-            },
-        ],
-        
-    )
+                ],
+                
+            )
+        except:
+            time.sleep(5)
     jobs = []
     for x in range(0, num_of_ec2):
-        p = multiprocessing.Process(target=add_tags, args=(instances, x,))
-        jobs.append(p)
-        p.start()
-
-        
-    print("Dude, relax, no ones died yet")
+        try:
+            p = multiprocessing.Process(target=add_tags, args=(instances, x,))
+            jobs.append(p)
+            p.start()
+        except:
+            print("Failed to create a process")
 
     # Get the queue
-    queue = sqs.get_queue_by_name(QueueName='CloudComputingSQS'+ keyrand)
+    queue = sqs.get_queue_by_name(QueueName='CloudComputingSQS')
 
 
     messages = []
     print("Waiting for message")
-    while messages == []:
-        messages = queue.receive_messages(QueueUrl=queue_url, WaitTimeSeconds=20)
+    try:
+        while messages == []:
+            messages = queue.receive_messages(WaitTimeSeconds=20)
 
-    print("Nonce: " + messages[0].body + " Time taken: " + str(time.time() - start))
-    for job in jobs:
-        job.join()
-    client.delete_key_pair(KeyName=key)
-    os.remove(keypem)
-    ids = []
-    for instance in instances:
-        ids.append(instance.id)
-    client.terminate_instances(InstanceIds=ids)
-    queue.delete()
+        print("Nonce: " + messages[0].body + " Time taken: " + str(time.time() - start))
+    finally:
+        for job in jobs:
+            job.join()
+        client.delete_key_pair(KeyName=key)
+        os.remove(keypem)
+        ids = []
+        for instance in instances:
+            ids.append(instance.id)
+        client.terminate_instances(InstanceIds=ids)
+        queue.purge()
