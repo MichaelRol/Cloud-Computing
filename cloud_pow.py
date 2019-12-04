@@ -60,7 +60,7 @@ if __name__ == '__main__':
     while instances == []:
         try:
             instances = ec2.create_instances(
-                ImageId='ami-05f37c3995fffb4fd',
+                ImageId='ami-0e6107917072ee88c',
                 MinCount=num_of_ec2,
                 MaxCount=num_of_ec2,
                 InstanceType='t2.micro',
@@ -69,12 +69,8 @@ if __name__ == '__main__':
                     'sg-0823d8a9cbaa125a1',
                 ],
                 UserData='''#!/bin/bash
-                            yum install -y python3-pip python3 python3-setuptools
-                            yum update
                             cd ~
                             aws s3 cp s3://cloudcomputing-pow/parallel_pow.py .
-                            pip3 install boto3
-                            pip3 install pexpect
                             python3 parallel_pow.py ''' + str(difficulty) + " 4 " + queue_url['QueueUrl']
                             ,
                 IamInstanceProfile={'Name': 'ec2_iam_role'},
@@ -126,4 +122,4 @@ if __name__ == '__main__':
         for instance in instances:
             ids.append(instance.id)
         client.terminate_instances(InstanceIds=ids)
-        queue.purge()
+    queue.purge()

@@ -7,6 +7,17 @@ Which is picked up by cloud_pow.py and printed, then shutsdown everything
 
 TODO:
 
-Have s3 created programmatically 
 Create own AMI
-Create IAMs programmatically
+
+Writing Topics:
+
+Intro
+Overview
+Components:
+    - EC2
+        - own AMI
+        - Key pairs
+    - SQS
+    - S3
+    - IAM Roles
+Analysis of performance
