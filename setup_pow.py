@@ -1,6 +1,17 @@
 import boto3
 import json
 
+print("Creating Key Pair")
+key = 'ec2-keypair'
+# # use boto ec2 to create new keypair
+
+client = boto3.client('ec2')
+try:
+    key_pair = client.create_key_pair(KeyName=key)
+    print("Key Pair Created")
+except:
+    print("Could not create keypair")
+
 print('Creating SQS Queue')
 sqs = boto3.resource('sqs')
 queue = sqs.create_queue(QueueName='CloudComputingSQS')

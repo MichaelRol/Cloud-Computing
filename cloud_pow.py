@@ -5,13 +5,16 @@ import time
 import pexpect
 import random
 import multiprocessing
-import uuid
-from pexpect import pxssh
 
 def add_tags(instances, x):
+
     instance = instances[x]
     # Wait for the instance to enter the running state
-    instance.wait_until_running()
+    try:
+        instance.wait_until_running()
+    except:
+        time.sleep(3)
+        instance.wait_until_running()
     # instance.load()
     instance.create_tags(Tags=[{'Key': 'num', 
                                     'Value': str(x)},])
@@ -30,22 +33,6 @@ if __name__ == '__main__':
 
     ec2 = boto3.resource('ec2')
     client = boto3.client('ec2')
-
-    keyrand = str(uuid.uuid4())
-    key = 'ec2-keypair' + keyrand
-    keypem = key + ".pem"
-
-    # create a local file to store keypair
-    outfile = open(keypem,'w')
-    # use boto ec2 to create new keypair
-    key_pair = client.create_key_pair(KeyName=key)
-    # store keypair in a file
-    key_pair_to_write = str(key_pair['KeyMaterial'])
-
-    outfile.write(key_pair_to_write)
-    pexpect.run("chmod 400 " + keypem)
-    outfile.close()
-
     sqs = boto3.resource('sqs')
 
     sqs_client = boto3.client('sqs')
@@ -64,10 +51,7 @@ if __name__ == '__main__':
                 MinCount=num_of_ec2,
                 MaxCount=num_of_ec2,
                 InstanceType='t2.micro',
-                KeyName=key, 
-                SecurityGroupIds=[
-                    'sg-0823d8a9cbaa125a1',
-                ],
+                KeyName='ec2-keypair',
                 UserData='''#!/bin/bash
                             cd ~
                             aws s3 cp s3://cloudcomputing-pow/parallel_pow.py .
@@ -94,6 +78,7 @@ if __name__ == '__main__':
         except:
             time.sleep(5)
     jobs = []
+
     for x in range(0, num_of_ec2):
         try:
             p = multiprocessing.Process(target=add_tags, args=(instances, x,))
@@ -111,15 +96,18 @@ if __name__ == '__main__':
     try:
         while messages == []:
             messages = queue.receive_messages(WaitTimeSeconds=20)
+            for message in messages:
+                message.delete()
 
         print("Nonce: " + messages[0].body + " Time taken: " + str(time.time() - start))
-    finally:
         for job in jobs:
             job.join()
-        client.delete_key_pair(KeyName=key)
-        os.remove(keypem)
+    finally:
         ids = []
         for instance in instances:
             ids.append(instance.id)
         client.terminate_instances(InstanceIds=ids)
-    queue.purge()
+    try:
+        queue.purge()
+    except:
+        print("Could not purge queue")
