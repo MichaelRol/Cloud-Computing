@@ -39,19 +39,19 @@ if __name__ == '__main__':
 
 
     keyrand = str(uuid.uuid4())
-    key = 'ec2-keypair' + keyrand
-    keypem = key + ".pem"
+    # key = 'ec2-keypair' + keyrand
+    # keypem = key + ".pem"
 
-    # create a local file to store keypair
-    outfile = open(keypem,'w')
-    # use boto ec2 to create new keypair
-    key_pair = client.create_key_pair(KeyName=key)
-    # store keypair in a file
-    key_pair_to_write = str(key_pair['KeyMaterial'])
+    # # create a local file to store keypair
+    # outfile = open(keypem,'w')
+    # # use boto ec2 to create new keypair
+    # key_pair = client.create_key_pair(KeyName=key)
+    # # store keypair in a file
+    # key_pair_to_write = str(key_pair['KeyMaterial'])
 
-    outfile.write(key_pair_to_write)
-    pexpect.run("chmod 400 " + keypem)
-    outfile.close()
+    # outfile.write(key_pair_to_write)
+    # pexpect.run("chmod 400 " + keypem)
+    # outfile.close()
 
     sqs = boto3.resource('sqs')
     queue = sqs.create_queue(QueueName='CloudComputingSQS'+keyrand)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
                 MinCount=num_of_ec2,
                 MaxCount=num_of_ec2,
                 InstanceType='t2.micro',
-                KeyName=key, 
+                KeyName='ec2-keypair', 
                 SecurityGroupIds=[
                     'sg-0823d8a9cbaa125a1',
                 ],
@@ -146,8 +146,8 @@ if __name__ == '__main__':
         s3.delete_bucket(Bucket='cloudcomputing-pow'+keyrand)
     print("Bucket terminated")
 
-    client.delete_key_pair(KeyName=key)
-    os.remove(keypem)
+    # client.delete_key_pair(KeyName=key)
+    # os.remove(keypem)
     ids = []
     for instance in instances:
         ids.append(instance.id)
