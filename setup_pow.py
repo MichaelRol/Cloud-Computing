@@ -17,22 +17,6 @@ sqs = boto3.resource('sqs')
 queue = sqs.create_queue(QueueName='CloudComputingSQS')
 print('Completed creating  SQS Queue')
 
-print('Creating S3 Bucket')
-s3 = boto3.client('s3')
-try:
-    s3.create_bucket(Bucket='cloudcomputing-pow',
-        CreateBucketConfiguration={
-            'LocationConstraint': 'eu-west-2'
-        },)
-except:
-    print("Bucket already exists")
-
-try:
-    response = s3.upload_file('parallel_pow.py', 'cloudcomputing-pow', 'parallel_pow.py')
-    print('S3 Bucket Created') 
-except:
-    print("Failed to upload to S3")
-
 print('Creating IAM Instance Profile')
 
 try:

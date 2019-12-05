@@ -2,7 +2,7 @@ import sys
 import os
 import boto3
 import time
-import pexpect
+import uuid
 import random
 import multiprocessing
 
@@ -30,6 +30,20 @@ if __name__ == '__main__':
         num_of_ec2 = int(sys.argv[2])
 
     start = time.time()
+    uuid = str(uuid.uuid4())
+    s3 = boto3.client('s3')
+    try:
+        s3.create_bucket(Bucket='cloudcomputing-pow'+uuid,
+            CreateBucketConfiguration={
+                'LocationConstraint': 'eu-west-2'
+            },)
+    except Exception as e:
+        print(e)
+
+    try:
+        response = s3.upload_file('parallel_pow.py', 'cloudcomputing-pow'+uuid, 'parallel_pow.py')
+    except:
+        print("Failed to upload to S3")
 
     ec2 = boto3.resource('ec2')
     client = boto3.client('ec2')
@@ -54,7 +68,7 @@ if __name__ == '__main__':
                 KeyName='ec2-keypair',
                 UserData='''#!/bin/bash
                             cd ~
-                            aws s3 cp s3://cloudcomputing-pow/parallel_pow.py .
+                            aws s3 cp s3://cloudcomputing-pow'''+uuid+'''/parallel_pow.py .
                             python3 parallel_pow.py ''' + str(difficulty) + " 4 " + queue_url['QueueUrl']
                             ,
                 IamInstanceProfile={'Name': 'ec2_iam_role'},
@@ -107,6 +121,12 @@ if __name__ == '__main__':
         for instance in instances:
             ids.append(instance.id)
         client.terminate_instances(InstanceIds=ids)
+        s3_objects = s3.list_objects_v2(Bucket='cloudcomputing-pow'+uuid)
+        if "Contents" in s3_objects:
+            for s3_obj in s3_objects["Contents"]:
+                rm_obj = s3.delete_object(
+                Bucket='cloudcomputing-pow'+uuid, Key=s3_obj["Key"])
+            s3.delete_bucket(Bucket='cloudcomputing-pow'+uuid)
     try:
         queue.purge()
     except:
