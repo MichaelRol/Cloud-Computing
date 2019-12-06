@@ -2,11 +2,9 @@ import sys
 import os
 import boto3
 import time
-import pexpect
 import random
 import multiprocessing
 import uuid
-from pexpect import pxssh
 
 def add_tags(instances, x):
     instance = instances[x]
@@ -39,19 +37,6 @@ if __name__ == '__main__':
 
 
     keyrand = str(uuid.uuid4())
-    # key = 'ec2-keypair' + keyrand
-    # keypem = key + ".pem"
-
-    # # create a local file to store keypair
-    # outfile = open(keypem,'w')
-    # # use boto ec2 to create new keypair
-    # key_pair = client.create_key_pair(KeyName=key)
-    # # store keypair in a file
-    # key_pair_to_write = str(key_pair['KeyMaterial'])
-
-    # outfile.write(key_pair_to_write)
-    # pexpect.run("chmod 400 " + keypem)
-    # outfile.close()
 
     sqs = boto3.resource('sqs')
     queue = sqs.create_queue(QueueName='CloudComputingSQS'+keyrand)
@@ -85,10 +70,7 @@ if __name__ == '__main__':
                 MinCount=num_of_ec2,
                 MaxCount=num_of_ec2,
                 InstanceType='t2.micro',
-                KeyName='ec2-keypair', 
-                SecurityGroupIds=[
-                    'sg-0823d8a9cbaa125a1',
-                ],
+                KeyName='ec2-keypair',
                 UserData='''#!/bin/bash
                             cd ~
                             aws s3 cp s3://cloudcomputing-pow'''+keyrand+'''/parallel_pow.py .
@@ -128,11 +110,12 @@ if __name__ == '__main__':
 
 
     messages = []
-    print("Waiting for message")
+    print("Waiting for golden nonce")
     while messages == []:
         messages = queue.receive_messages(WaitTimeSeconds=20)
 
-    print("Nonce: " + messages[0].body + " Time taken: " + str(time.time() - start))
+    # print("Calc Time: " + messages[0].body + " Overhead: " + str(time.time() - start - float(messages[0].body)) + " Total: " + str(time.time() - start))
+    print(messages[0].body)#+", "+str(time.time() - start - float(messages[0].body)) + ", " + str(time.time() - start))
     queue.delete()
 
     for job in jobs:
@@ -144,10 +127,6 @@ if __name__ == '__main__':
             rm_obj = s3.delete_object(
             Bucket='cloudcomputing-pow'+keyrand, Key=s3_obj["Key"])
         s3.delete_bucket(Bucket='cloudcomputing-pow'+keyrand)
-    print("Bucket terminated")
-
-    # client.delete_key_pair(KeyName=key)
-    # os.remove(keypem)
     ids = []
     for instance in instances:
         ids.append(instance.id)

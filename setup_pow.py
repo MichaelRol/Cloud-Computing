@@ -8,7 +8,7 @@ try:
     key_pair = client.create_key_pair(KeyName='ec2-keypair')
 except:
     print("Key already exists")
-    
+
 print('Creating IAM Instance Profile')
 
 try:
